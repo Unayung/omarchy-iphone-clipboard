@@ -73,7 +73,7 @@ class H(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/shortcuts/"):  # 通用捷徑檔，不含任何機密
             name = SHORTCUTS.get(path.removeprefix("/shortcuts/"))
-            if not name:
+            if not name or not (HERE / "shortcuts" / name).exists():  # 還沒在 Mac 上簽名
                 return self.reply(404)
             return self.reply(200, (HERE / "shortcuts" / name).read_bytes(), "application/octet-stream",
                               [("Content-Disposition", f"attachment; filename*=UTF-8''{quote(name)}")])

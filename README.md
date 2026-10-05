@@ -11,7 +11,8 @@
 ## 安裝
 
 ```bash
-omarchy plugin add https://github.com/<you>/omarchy-iphone-clipboard --enable
+gh auth setup-git   # 私人 repo：讓 git clone 用 gh 的登入
+omarchy plugin add https://github.com/Unayung/omarchy-iphone-clipboard --enable
 ```
 
 1. 點 bar 上的剪貼簿圖示 → 「啟用服務」（等同執行 `./setup`，裝成 systemd user service）
