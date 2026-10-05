@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.unayung.iphone-clipboard",
+  "name": "iPhone Clipboard",
+  "version": "0.1.0",
+  "author": "unayung",
+  "license": "MIT",
+  "description": "Copy on iPhone, paste on Omarchy (and back) over Tailscale, triggered by iOS Back Tap shortcuts.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "iPhone Clipboard",
+    "description": "Status of the iPhone clipboard bridge and a QR code to install the iOS shortcuts.",
+    "category": "Network",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

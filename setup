@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# 把 clip-server.py 裝成 systemd user service（plugin 重載、多螢幕都不會影響它）
+#   ./setup           安裝並啟動
+#   ./setup --remove  停掉並移除
+set -euo pipefail
+dir=$(cd "$(dirname "$0")" && pwd)
+unit=~/.config/systemd/user/iphone-clipboard.service
+if [ "${1:-}" = --remove ]; then
+  systemctl --user disable --now iphone-clipboard.service 2>/dev/null || true
+  rm -f "$unit"; systemctl --user daemon-reload; echo removed; exit
+fi
+command -v tailscale >/dev/null || { echo "需要 tailscale"; exit 1; }
+mkdir -p "$(dirname "$unit")"
+cat > "$unit" <<UNIT
+[Unit]
+Description=iPhone clipboard bridge (Tailscale <-> wl-copy/wl-paste)
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 $dir/clip-server.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+UNIT
+systemctl --user daemon-reload
+systemctl --user enable --now iphone-clipboard.service
+echo "installed: $unit"
