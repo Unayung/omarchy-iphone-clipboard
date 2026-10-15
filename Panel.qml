@@ -93,6 +93,9 @@ Panel {
     MouseArea { id: area; anchors.fill: parent; hoverEnabled: true; onClicked: btn.clicked() }
   }
 
+  implicitWidth: button.implicitWidth
+  implicitHeight: button.implicitHeight
+
   BarIconButton {
     id: button
     anchors.fill: parent
