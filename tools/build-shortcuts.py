@@ -27,7 +27,7 @@ def workflow(actions, glyph):
             "WFWorkflowIcon": {"WFWorkflowIconStartColor": 4282601983, "WFWorkflowIconGlyphNumber": glyph},
             "WFWorkflowImportQuestions": [{
                 "ActionIndex": 0, "Category": "Parameter", "ParameterKey": "WFTextActionText", "DefaultValue": "",
-                "Text": "貼上 Omarchy 剪貼簿面板（或安裝頁）上的網址，開頭是 http://100. 結尾有 ?t="}],
+                "Text": "Paste the URL from the Omarchy iPhone Clipboard panel or install page. It starts with http://100. and ends with ?t="}],
             "WFWorkflowInputContentItemClasses": [], "WFWorkflowTypes": []}
 
 
@@ -58,6 +58,6 @@ def fetch():
 
 
 OUT.mkdir(exist_ok=True)
-for name, wf in (("傳到電腦", send()), ("從電腦拿", fetch())):
+for name, wf in (("Send to Computer", send()), ("Get from Computer", fetch())):
     (OUT / f"{name}.shortcut").write_bytes(plistlib.dumps(wf, fmt=plistlib.FMT_BINARY))
     print(OUT / f"{name}.shortcut")
