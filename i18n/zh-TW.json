@@ -1,0 +1,23 @@
+{
+  "panel.title": "iPhone 剪貼簿",
+  "panel.running": "服務執行中。用 iPhone 相機掃描，照著頁面安裝捷徑。",
+  "panel.stopped": "服務沒在跑（%1）。按下面的按鈕安裝成 systemd 使用者服務。",
+  "button.enable": "啟用服務",
+  "button.installing": "安裝中…",
+  "button.copyInstall": "複製安裝頁網址",
+  "button.copyServer": "複製捷徑用的伺服器網址",
+  "note.installCopied": "安裝頁網址已複製",
+  "note.serverCopied": "伺服器網址已複製",
+  "note.enabled": "服務已啟用",
+  "note.enableFailed": "啟用失敗，請在終端機跑 ./setup 看錯誤",
+  "notify.app": "iPhone 剪貼簿",
+  "notify.title": "已收到 iPhone 剪貼簿",
+  "notify.file": "圖片／檔案 %1 KB",
+  "install.title": "iPhone 剪貼簿",
+  "install.step1": "1. 先複製這台電腦的網址，匯入捷徑時會問：",
+  "install.copy": "複製網址",
+  "install.copied": "已複製",
+  "install.step2": "2. 安裝兩個捷徑，匯入時貼上網址：",
+  "install.step3": "設定 → 輔助使用 → 觸控 → 背面輕點：點兩下選「%1」、點三下選「%2」",
+  "install.step4": "第一次執行時，允許讀取剪貼簿選「永遠允許」"
+}

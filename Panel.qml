@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // 伺服器由 systemd 跑（./setup 安裝），這裡只顯示狀態、QR code 和複製網址
@@ -21,7 +22,7 @@ Panel {
   property string status: "unknown"   // active / inactive / failed / unknown
   property string installUrl: ""
   property int qrVersion: 0
-  property string note: ""
+  property string noteKey: ""
   readonly property bool active: status === "active"
   readonly property string serverUrl: installUrl.replace("/install?", "/?")
 
@@ -35,12 +36,12 @@ Panel {
     checker.running = true
   }
 
-  function copy(text, label) {
+  function copy(text, key) {
     Quickshell.execDetached(["bash", "-c", "printf %s " + Util.shellQuote(text) + " | wl-copy"])
-    note = label + " 已複製"
+    noteKey = key
   }
 
-  onOpenedChanged: if (opened) { note = ""; refresh(); Qt.callLater(function() { keyCatcher.forceActiveFocus() }) }
+  onOpenedChanged: if (opened) { noteKey = ""; refresh(); Qt.callLater(function() { keyCatcher.forceActiveFocus() }) }
   Component.onCompleted: refresh()
 
   Timer { interval: 60000; running: true; repeat: true; onTriggered: root.refresh() }
@@ -65,8 +66,10 @@ Panel {
     id: setupProc
     running: false
     command: ["bash", "-c", Util.shellQuote(root.pluginDir + "setup")]
-    onExited: function(code) { root.note = code === 0 ? "服務已啟用" : "啟用失敗，請在終端機跑 ./setup 看錯誤"; afterSetup.start() }
+    onExited: function(code) { root.noteKey = code === 0 ? "note.enabled" : "note.enableFailed"; afterSetup.start() }
   }
+
+  Commons.Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
 
   IpcHandler {
     target: root.ipcTarget
@@ -128,7 +131,7 @@ Panel {
       spacing: Style.space(8)
 
       Text {
-        text: "iPhone 剪貼簿"
+        text: strings.t("panel.title")
         color: root.foreground
         font.family: root.fontFamily
         font.pixelSize: Style.font.title
@@ -141,8 +144,7 @@ Panel {
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.body
-        text: root.active ? "服務執行中。用 iPhone 相機掃描，照著頁面安裝捷徑。"
-                          : "服務沒在跑（" + root.status + "）。按下面的按鈕安裝成 systemd 服務。"
+        text: root.active ? strings.t("panel.running") : strings.t("panel.stopped").arg(root.status)
       }
 
       Image {
@@ -158,23 +160,23 @@ Panel {
 
       ActionButton {
         visible: !root.active
-        label: setupProc.running ? "安裝中…" : "啟用服務"
+        label: setupProc.running ? strings.t("button.installing") : strings.t("button.enable")
         onClicked: if (!setupProc.running) setupProc.running = true
       }
       ActionButton {
         visible: root.active && root.installUrl !== ""
-        label: "複製安裝頁網址"
-        onClicked: root.copy(root.installUrl, "安裝頁網址")
+        label: strings.t("button.copyInstall")
+        onClicked: root.copy(root.installUrl, "note.installCopied")
       }
       ActionButton {
         visible: root.active && root.installUrl !== ""
-        label: "複製捷徑用的伺服器網址"
-        onClicked: root.copy(root.serverUrl, "伺服器網址")
+        label: strings.t("button.copyServer")
+        onClicked: root.copy(root.serverUrl, "note.serverCopied")
       }
 
       Text {
-        visible: root.note !== ""
-        text: root.note
+        visible: root.noteKey !== ""
+        text: strings.t(root.noteKey)
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.body

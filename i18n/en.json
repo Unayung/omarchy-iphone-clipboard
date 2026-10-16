@@ -1,0 +1,23 @@
+{
+  "panel.title": "iPhone Clipboard",
+  "panel.running": "The service is running. Scan this with your iPhone camera and follow the page to install the shortcuts.",
+  "panel.stopped": "The service is not running (%1). Press the button below to install it as a systemd user service.",
+  "button.enable": "Enable service",
+  "button.installing": "Installing…",
+  "button.copyInstall": "Copy install page URL",
+  "button.copyServer": "Copy shortcut server URL",
+  "note.installCopied": "Install page URL copied",
+  "note.serverCopied": "Server URL copied",
+  "note.enabled": "Service enabled",
+  "note.enableFailed": "Could not enable the service. Run ./setup in a terminal to see the error.",
+  "notify.app": "iPhone Clipboard",
+  "notify.title": "Received from iPhone",
+  "notify.file": "Image or file, %1 KB",
+  "install.title": "iPhone Clipboard",
+  "install.step1": "1. Copy this computer's URL first. Importing a shortcut asks for it:",
+  "install.copy": "Copy URL",
+  "install.copied": "Copied",
+  "install.step2": "2. Install both shortcuts and paste the URL when asked:",
+  "install.step3": "Settings → Accessibility → Touch → Back Tap: set Double Tap to “%1” and Triple Tap to “%2”.",
+  "install.step4": "The first time each shortcut runs, choose “Always Allow” for clipboard access."
+}

@@ -3,7 +3,7 @@
 # 只綁 Tailscale IP；token 第一次跑時產生在 ~/.config/iphone-clipboard/token，捷徑用 X-Token 或 ?t= 帶上。
 #   clip-server.py         跑伺服器
 #   clip-server.py url     印出安裝頁網址（面板拿去做 QR code）
-import html, os, secrets, subprocess, sys, time
+import html, json, os, secrets, subprocess, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urlparse
@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 CONF = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "iphone-clipboard"
 PORT = int(os.environ.get("CLIP_PORT", 8766))
 MAX = 50 << 20
-SHORTCUTS = {"send": "傳到電腦.shortcut", "fetch": "從電腦拿.shortcut"}
+SHORTCUTS = {"send": "Send to Computer.shortcut", "fetch": "Get from Computer.shortcut"}
 
 
 def token():
@@ -24,13 +24,30 @@ def token():
     return f.read_text().strip()
 
 
+def t(key):
+    # 跟著 Omarchy 的語言（Setup > Language），找不到就退到基礎語言、再退到 en，跟 Panel.qml 同一份 i18n/
+    # ponytail: 每次呼叫都重讀檔案，一個請求只用到幾個字串；量大再快取
+    try:
+        lang = (CONF.parent / "omarchy" / "language").read_text().strip() or "en"
+    except OSError:
+        lang = "en"
+    for code in (lang, lang.split("-")[0], "en"):
+        try:
+            value = json.loads((HERE / "i18n" / f"{code}.json").read_text()).get(key)
+        except (OSError, ValueError):
+            continue
+        if value:
+            return value
+    return key
+
+
 def tailscale_ip(wait):
     while True:  # 開機時 tailscaled 可能還沒好
         r = subprocess.run(["tailscale", "ip", "-4"], capture_output=True, text=True)
         if r.returncode == 0 and r.stdout.strip():
             return r.stdout.split()[0]
         if not wait:
-            sys.exit("tailscale 沒有 IPv4 位址")
+            sys.exit("tailscale has no IPv4 address")
         time.sleep(10)
 
 
@@ -65,8 +82,8 @@ class H(BaseHTTPRequestHandler):
         body = self.rfile.read(n)
         subprocess.run(["wl-copy"], input=body, check=True)
         is_text = run("wl-paste", "-l").decode().startswith("text/")
-        preview = body.decode(errors="replace")[:80] if is_text else f"圖片／檔案 {n // 1024} KB"
-        subprocess.run(["notify-send", "-a", "iPhone 剪貼簿", "已收到 iPhone 剪貼簿", preview])
+        preview = body.decode(errors="replace")[:80] if is_text else t("notify.file").replace("%1", str(n // 1024))
+        subprocess.run(["notify-send", "-a", t("notify.app"), t("notify.title"), preview])
         self.reply(204)
 
     def do_GET(self):
@@ -90,21 +107,22 @@ class H(BaseHTTPRequestHandler):
 
 def install_page():
     url = html.escape(f"http://{IP}:{PORT}/?t={TOKEN}")
+    names = [v.removesuffix(".shortcut") for v in SHORTCUTS.values()]
     links = "".join(f'<a class="btn" href="/shortcuts/{k}">{html.escape(v.removesuffix(".shortcut"))}</a>'
                     for k, v in SHORTCUTS.items())
     return f"""<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>iPhone 剪貼簿</title>
+<title>{html.escape(t("install.title"))}</title>
 <style>body{{font:17px -apple-system,sans-serif;padding:20px;max-width:560px;margin:auto}}
 .btn{{display:block;margin:12px 0;padding:16px;border-radius:12px;background:#0a84ff;color:#fff;text-decoration:none;text-align:center}}
 input{{width:100%;box-sizing:border-box;font:15px ui-monospace,monospace;padding:12px;border-radius:10px;border:1px solid #888}}
 button{{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:0;background:#30d158;color:#fff;font-size:17px}}
 ol{{padding-left:20px;line-height:1.6}}</style>
 <h2>{html.escape(os.uname().nodename)}</h2>
-<p>1. 先複製這台電腦的網址，匯入捷徑時會問：</p>
-<input id="u" readonly value="{url}"><button onclick="u.select();document.execCommand('copy');this.textContent='已複製'">複製網址</button>
-<p>2. 安裝兩個捷徑，匯入時貼上網址：</p>{links}
-<ol start="3"><li>設定 → 輔助使用 → 觸控 → 背面輕點：點兩下選「傳到電腦」、點三下選「從電腦拿」</li>
-<li>第一次執行時，允許讀取剪貼簿選「永遠允許」</li></ol>"""
+<p>{html.escape(t("install.step1"))}</p>
+<input id="u" readonly value="{url}"><button onclick="u.select();document.execCommand('copy');this.textContent={html.escape(json.dumps(t("install.copied")))}">{html.escape(t("install.copy"))}</button>
+<p>{html.escape(t("install.step2"))}</p>{links}
+<ol start="3"><li>{html.escape(t("install.step3").replace("%1", names[0]).replace("%2", names[1]))}</li>
+<li>{html.escape(t("install.step4"))}</li></ol>"""
 
 
 TOKEN = token()
