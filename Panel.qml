@@ -32,12 +32,13 @@ Panel {
       's=$(systemctl --user is-active iphone-clipboard.service); echo "$s"; ' +
       '[ "$s" = active ] || exit 0; ' +
       'u=$(python3 ' + Util.shellQuote(pluginDir + "clip-server.py") + ' url) || exit 0; echo "$u"; ' +
-      'qrencode -s 8 -m 2 -o ' + Util.shellQuote(qrPath) + ' "$u"']
+      'printf %s "$u" | qrencode -s 8 -m 2 -o ' + Util.shellQuote(qrPath)]  // 網址含 token，走 stdin 不進 argv
     checker.running = true
   }
 
   function copy(text, key) {
-    Quickshell.execDetached(["bash", "-c", "printf %s " + Util.shellQuote(text) + " | wl-copy"])
+    copier.environment = { CLIP_TEXT: text }
+    copier.startDetached()
     noteKey = key
   }
 
@@ -60,6 +61,12 @@ Panel {
         if (root.installUrl) root.qrVersion++
       }
     }
+  }
+
+  // 網址含 token：放環境變數（/proc/*/environ 只有本人讀得到），不放 argv
+  Process {
+    id: copier
+    command: ["bash", "-c", 'printf %s "$CLIP_TEXT" | wl-copy']
   }
 
   Process {
