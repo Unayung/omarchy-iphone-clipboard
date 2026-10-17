@@ -82,7 +82,9 @@ class H(BaseHTTPRequestHandler):
         body = self.rfile.read(n)
         subprocess.run(["wl-copy"], input=body, check=True)
         is_text = run("wl-paste", "-l").decode().startswith("text/")
-        preview = body.decode(errors="replace")[:80] if is_text else t("notify.file").replace("%1", str(n // 1024))
+        # 不放內容：notify-send 只吃 argv，別的本機使用者讀得到 /proc/*/cmdline
+        preview = t("notify.text").replace("%1", str(len(body.decode(errors="replace")))) if is_text \
+            else t("notify.file").replace("%1", str(n // 1024))
         subprocess.run(["notify-send", "-a", t("notify.app"), t("notify.title"), preview])
         self.reply(204)
 

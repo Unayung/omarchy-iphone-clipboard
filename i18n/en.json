@@ -13,6 +13,7 @@
   "notify.app": "iPhone Clipboard",
   "notify.title": "Received from iPhone",
   "notify.file": "Image or file, %1 KB",
+  "notify.text": "Text, %1 characters",
   "install.title": "iPhone Clipboard",
   "install.step1": "1. Copy this computer's URL first. Importing a shortcut asks for it:",
   "install.copy": "Copy URL",

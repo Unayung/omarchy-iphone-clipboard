@@ -13,6 +13,7 @@
   "notify.app": "iPhone 剪貼簿",
   "notify.title": "已收到 iPhone 剪貼簿",
   "notify.file": "圖片／檔案 %1 KB",
+  "notify.text": "文字 %1 個字",
   "install.title": "iPhone 剪貼簿",
   "install.step1": "1. 先複製這台電腦的網址，匯入捷徑時會問：",
   "install.copy": "複製網址",
