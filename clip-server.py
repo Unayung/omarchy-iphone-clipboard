@@ -3,7 +3,7 @@
 # 只綁 Tailscale IP；token 第一次跑時產生在 ~/.config/iphone-clipboard/token，捷徑用 X-Token 或 ?t= 帶上。
 #   clip-server.py         跑伺服器
 #   clip-server.py url     印出安裝頁網址（面板拿去做 QR code）
-import html, json, os, secrets, subprocess, sys, time
+import html, json, os, re, secrets, subprocess, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urlparse
@@ -55,6 +55,90 @@ def run(*cmd, data=None):
     return subprocess.run(cmd, input=data, capture_output=True).stdout
 
 
+# --- local patch: convert formats most Linux apps can't paste ---------------
+HEIC_BRANDS = {b"heic", b"heix", b"heif", b"heim", b"heis", b"hevc", b"hevx", b"mif1", b"msf1"}
+
+
+def convert(body):
+    """HEIC photo -> PNG, RTF -> plain text. Returns (body, forced_mime or None)."""
+    if len(body) > 12 and body[4:8] == b"ftyp" and body[8:12] in HEIC_BRANDS:
+        png = run("magick", "heic:-", "png:-", data=body)
+        if png:
+            return png, "image/png"
+    if body[:5] == b"{\\rtf":
+        try:
+            text = rtf_to_text(body.decode("cp1252", errors="replace"))
+            if text.strip():
+                return text.encode(), None
+        except Exception:
+            pass
+    return body, None
+
+
+def rtf_to_text(rtf):
+    # Minimal RTF -> text, adapted from the well-known striprtf recipe.
+    pattern = re.compile(
+        r"\\([a-z]{1,32})(-?\d{1,10})?[ ]?|\\'([0-9a-f]{2})|\\([^a-z])|([{}])|[\r\n]+|(.)",
+        re.I | re.S)
+    destinations = {
+        "fonttbl", "colortbl", "expandedcolortbl", "stylesheet", "info", "pict", "object",
+        "header", "footer", "footnote", "filetbl", "listtable", "listoverridetable",
+        "listname", "listtext", "levelnumbers", "leveltext", "levelmarker", "themedata",
+        "generator", "revtbl", "xmlnstbl", "datastore", "colorschememapping",
+    }
+    special = {"par": "\n", "sect": "\n\n", "page": "\n\n", "line": "\n", "tab": "\t",
+               "emdash": "\u2014", "endash": "\u2013", "emspace": "\u2003", "enspace": "\u2002",
+               "bullet": "\u2022", "lquote": "\u2018", "rquote": "\u2019",
+               "ldblquote": "\u201c", "rdblquote": "\u201d"}
+    stack, out = [], []
+    ignorable, ucskip, curskip = False, 1, 0
+    for match in pattern.finditer(rtf):
+        word, arg, hexc, char, brace, tchar = match.groups()
+        if brace == "{":
+            curskip = 0
+            stack.append((ucskip, ignorable))
+        elif brace == "}":
+            curskip = 0
+            if stack:
+                ucskip, ignorable = stack.pop()
+        elif char:
+            curskip = 0
+            if char == "~":
+                if not ignorable:
+                    out.append("\u00a0")
+            elif char in "{}\\":
+                if not ignorable:
+                    out.append(char)
+            elif char == "*":
+                ignorable = True
+        elif word:
+            curskip = 0
+            if word in destinations:
+                ignorable = True
+            elif ignorable:
+                pass
+            elif word in special:
+                out.append(special[word])
+            elif word == "uc":
+                ucskip = int(arg)
+            elif word == "u":
+                c = int(arg)
+                out.append(chr(c + 65536 if c < 0 else c))
+                curskip = ucskip
+        elif hexc:
+            if curskip > 0:
+                curskip -= 1
+            elif not ignorable:
+                out.append(bytes([int(hexc, 16)]).decode("cp1252", errors="replace"))
+        elif tchar:
+            if curskip > 0:
+                curskip -= 1
+            elif not ignorable:
+                out.append(tchar)
+    return "".join(out)
+# ---------------------------------------------------------------------------
+
+
 class H(BaseHTTPRequestHandler):
     def log_request(self, code="-", size="-"):  # 不把 ?t=token 寫進 journal
         self.log_message('"%s %s" %s', self.command, urlparse(self.path).path, code)
@@ -80,11 +164,12 @@ class H(BaseHTTPRequestHandler):
         if not 0 < n <= MAX:
             return self.reply(413 if n else 400)
         body = self.rfile.read(n)
-        subprocess.run(["wl-copy"], input=body, check=True)
+        body, mime = convert(body)  # local patch: HEIC -> PNG, RTF -> plain text
+        subprocess.run(["wl-copy"] + (["--type", mime] if mime else []), input=body, check=True)
         is_text = run("wl-paste", "-l").decode().startswith("text/")
         # 不放內容：notify-send 只吃 argv，別的本機使用者讀得到 /proc/*/cmdline
         preview = t("notify.text").replace("%1", str(len(body.decode(errors="replace")))) if is_text \
-            else t("notify.file").replace("%1", str(n // 1024))
+            else t("notify.file").replace("%1", str(len(body) // 1024))
         subprocess.run(["notify-send", "-a", t("notify.app"), t("notify.title"), preview])
         self.reply(204)
 
