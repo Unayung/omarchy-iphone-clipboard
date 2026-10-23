@@ -76,7 +76,27 @@ Panel {
     onExited: function(code) { root.noteKey = code === 0 ? "note.enabled" : "note.enableFailed"; afterSetup.start() }
   }
 
-  Commons.Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
+  // Local stand-in for Commons.Translations, which Omarchy <= 4.0.x does not ship yet
+  QtObject {
+    id: strings
+    property var table: ({})
+    function t(key) { var v = table[key]; return v !== undefined ? v : key }
+    Component.onCompleted: {
+      var lang = (Qt.locale().name || "en").replace("_", "-")
+      var candidates = [lang, lang.split("-")[0], "en"]
+      function tryLoad(i) {
+        if (i >= candidates.length) return
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState !== XMLHttpRequest.DONE) return
+          try { strings.table = JSON.parse(xhr.responseText) } catch (e) { tryLoad(i + 1) }
+        }
+        xhr.open("GET", Qt.resolvedUrl("i18n/" + candidates[i] + ".json"))
+        xhr.send()
+      }
+      tryLoad(0)
+    }
+  }
 
   IpcHandler {
     target: root.ipcTarget
